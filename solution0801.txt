@@ -1,0 +1,275 @@
+Min Prereq: Chapter 8
+
+Customer description:
+
+Sometimes file reads are slow. Is there a disk problem?
+
+Your response:
+
+This was examined on a Joyent SmartOS cloud instance, which is an OS-Virtualized
+guest.
+
+I'll start by checking resources (the USE Method). Since this is an guest
+instance, I'll want to start by checking resource controls, which may be
+limiting performance before the physical resource is exhausted.
+
+Starting with VFS-level I/O:
+
+# vfsstat 1
+  r/s   w/s  kr/s  kw/s ractv wactv read_t writ_t  %r  %w   d/s  del_t zone
+2440.9 1985.5 3266.4 1688.5   0.0   0.0    2.1    3.3   0   0   1.4   23.3 5716a5b6 (18)
+7127.6 1836.2 2855926.4 1555.7   1.0   0.0  138.5    3.2  98   0   0.0    0.0 5716a5b6 (18)
+9967.5 2810.4 2988186.5 2387.2   1.0   0.0  100.3    3.3  99   0   0.0    0.0 5716a5b6 (18)
+9008.1 2145.2 3415204.4 1823.2   1.0   0.0  111.5    3.2  99   0   0.0    0.0 5716a5b6 (18)
+8780.9 2130.1 3593220.0 1805.4   1.0   0.0  113.9    3.1  99   0   0.0    0.0 5716a5b6 (18)
+8660.7 2810.1 3620963.3 2386.9   1.0   0.0  115.3    3.2  99   0   0.0    0.0 5716a5b6 (18)
+9848.9 1843.8 3495647.9 1567.7   1.0   0.0  101.3    3.2  99   0   0.0    0.0 5716a5b6 (18)
+7093.5 960.7 3100268.5 814.5   1.0   0.0  139.3    3.2  98   0   0.0    0.0 5716a5b6 (18)
+9470.8 2813.9 3507761.8 2390.2   1.0   0.0  105.5    3.1  99   0   0.0    0.0 5716a5b6 (18)
+[...]
+
+Throttling isn't present (d/s is zero). This also shows a high rate of reads:
+up to 10k per second, and around 3 Gbytes/sec.
+
+Checking disks:
+
+# iostat -xnze 1
+                            extended device statistics       ---- errors --- 
+    r/s    w/s   kr/s   kw/s wait actv wsvc_t asvc_t  %w  %b s/w h/w trn tot device
+    1.8    0.2   11.9    0.7  0.0  0.0    0.0    0.0   0   0   0   0   0   0 ramdisk1
+  112.3  179.4 2645.2 12416.8  0.0  0.2    0.0    0.6   0  10   0   0   0   0 sd1
+  112.3  179.4 2645.2 12416.8  7.4  0.2   25.3    0.6   3  10   0   0   0   0 zones
+                            extended device statistics       ---- errors --- 
+    r/s    w/s   kr/s   kw/s wait actv wsvc_t asvc_t  %w  %b s/w h/w trn tot device
+    1.0    5.9    7.8  274.7  0.0  0.0    0.0    1.1   0   1   0   0   0   0 sd1
+    1.0    5.9    7.8  274.7  0.0  0.0    0.0    1.2   0   1   0   0   0   0 zones
+                            extended device statistics       ---- errors --- 
+    r/s    w/s   kr/s   kw/s wait actv wsvc_t asvc_t  %w  %b s/w h/w trn tot device
+  257.4    5.0 32827.1  296.5  0.0  0.2    0.0    0.6   0   6   0   0   0   0 sd1
+  257.4    5.0 32827.1  296.5  7.6  0.2   29.0    0.6   5   6   0   0   0   0 zones
+                            extended device statistics       ---- errors --- 
+    r/s    w/s   kr/s   kw/s wait actv wsvc_t asvc_t  %w  %b s/w h/w trn tot device
+    0.0   34.0    0.0  131.9  0.0  0.0    0.0    0.0   0   0   0   0   0   0 ramdisk1
+    3.0   10.0   24.0  255.9  0.0  0.0    0.0    0.8   0   1   0   0   0   0 sd1
+    3.0   10.0   24.0  255.9  0.0  0.0    0.0    0.8   0   1   0   0   0   0 zones
+                            extended device statistics       ---- errors --- 
+    r/s    w/s   kr/s   kw/s wait actv wsvc_t asvc_t  %w  %b s/w h/w trn tot device
+    0.0    3.0    0.0  196.0  0.0  0.0    0.0    0.1   0   0   0   0   0   0 sd1
+    0.0    3.0    0.0  196.0  0.0  0.0    0.0    0.2   0   0   0   0   0   0 zones
+[...]
+
+While the VFS-level load is steady, at the disk level it varies, with the disks
+often idle (%b 0 or 1). This would suggest a high level of caching for the reads.
+That variation might explain why file reads are sometimes slow, if they sometimes
+return from disk.
+
+Other resource controls and physical resources were checked, using tools such
+as vmstat, nicstat, and kstat. CPUs, memory, and the network all look largely
+idle.
+
+To get a better handle on the problem statement, "Sometimes file reads are slow",
+I traced them using DTrace. Starting by checking these are via syscalls, and
+identifying the syscall type:
+
+# dtrace -n 'syscall:::entry /execname == "lab0801"/ { @[probefunc] = count(); }'
+dtrace: description 'syscall:::entry ' matched 234 probes
+^C
+
+  lseek                                                          4272
+  read                                                           4272
+
+This shows that there are both seeks and reads, and the read syscall type is
+just read().
+
+Now to trace the read() syscall time, using DTrace:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0801"/ { self->ts = timestamp; }
+    syscall::read:return /self->ts/ { @["ns"] = quantize(timestamp - self->ts); self->ts = 0; }'
+dtrace: description 'syscall::read:entry ' matched 2 probes
+^C
+
+  ns                                                
+           value  ------------- Distribution ------------- count    
+            4096 |                                         0        
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   11619    
+           16384 |@                                        400      
+           32768 |                                         9        
+           65536 |                                         0        
+          131072 |                                         0        
+          262144 |                                         0        
+          524288 |                                         0        
+         1048576 |                                         0        
+         2097152 |                                         0        
+         4194304 |                                         0        
+         8388608 |@                                        167      
+        16777216 |                                         1        
+        33554432 |                                         0 
+
+This looks like the problem statement: reads are usually less than 16
+microseconds, with some outliers in the 8 - 16 millisecond range.
+
+Since this seems likely it is disk I/O, as the time range is similar to
+rotational disk latency, I'll further confirm it by showing that the thread
+is blocked during the system call. There are multiple ways to do this; I'll
+start with the off-CPU time using the DTrace sched provider:
+
+dtrace -n 'sched:::off-cpu /execname == "lab0801"/ { self->ts = timestamp; }
+    sched:::on-cpu /self->ts/ { @["ns"] = quantize(timestamp - self->ts); self->ts = 0; }'
+dtrace: description 'sched:::off-cpu ' matched 6 probes
+^C
+
+  ns                                                
+           value  ------------- Distribution ------------- count    
+            2048 |                                         0        
+            4096 |@@@@@                                    1        
+            8192 |@@@@@@@@@@@@@@@@@@@@                     4        
+           16384 |                                         0        
+           32768 |@@@@@                                    1        
+           65536 |@@@@@@@@@@                               2        
+          131072 |                                         0    
+
+This isn't consistent with what I was expecting: it's showing off-CPU time
+is less than 100 microseconds, not 8 - 16 milliseconds.
+
+By switching to vtimestamps, I can measure the on-CPU time during the
+system call:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0801"/ { self->ts = vtimestamp; }
+    syscall::read:return /self->ts/ { @["CPU ns"] = quantize(vtimestamp - self->ts); self->ts = 0; }'
+dtrace: description 'syscall::read:entry ' matched 2 probes
+^C
+
+  CPU ns                                                
+           value  ------------- Distribution ------------- count    
+            4096 |                                         0        
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   15536    
+           16384 |@                                        540      
+           32768 |                                         9        
+           65536 |                                         0        
+          131072 |                                         0        
+          262144 |                                         0        
+          524288 |                                         0        
+         1048576 |                                         0        
+         2097152 |                                         0        
+         4194304 |                                         0        
+         8388608 |@                                        209      
+        16777216 |                                         1        
+        33554432 |                                         0  
+
+This shows that the outliers stay on-CPU for their entire duration. This is
+unlikely to be disk device related, as it now looks like the time is spent
+in kernel code paths.
+
+In order to investigate how this syscall has caused the kernel to spend
+so much time on-CPU, I'll characterize its workload by looking at the
+arguments to the read() syscall, its return value, and errno.
+
+Starting with the file descriptor:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0801"/ { @[arg0] = count(); }'
+dtrace: description 'syscall::read:entry ' matched 1 probe
+^C
+
+                3             5377
+
+File descriptor 3. DTrace may be able to show this as a pathname:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0801"/ { @[fds[arg0].fi_pathname] = count(); }'
+dtrace: description 'syscall::read:entry ' matched 1 probe
+^C
+
+  /var/tmp/217oaGSi                                              8200
+
+That file doesn't currently exist in the file system. It's created by mkstemp(),
+a means for applications to create temporary files.
+
+The size requested for the reads:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0801"/ { @[arg2] = count(); }'
+dtrace: description 'syscall::read:entry ' matched 1 probe
+^C
+
+         41943040              133
+             2048             3200
+             1024             6552
+
+Ah, reads are usually 1 or 2 Kbytes, but are sometimes around 40 Mbytes.
+A 40 Mbyte read from the file system cache could indeed require 8 milliseconds
+of CPU time to move the bytes.
+
+The returned size for the reads, and the errno:
+
+# dtrace -n 'syscall::read:return /execname == "lab0801"/ { @[arg1, errno] = count(); }'
+dtrace: description 'syscall::read:return ' matched 1 probe
+^C
+
+         41943040        0              141
+             2048        0             3394
+             1024        0             6931
+
+These are all completing successfully.
+
+Now to confirm that the large size is causing the latency. Here I'll trace the
+latency, but break it down by the returned read size:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0801"/ { self->ts = timestamp; } syscall::read:return /self->ts/ { @[arg1, "ns"] = quantize(timestamp - self->ts); self->ts = 0; }'
+dtrace: description 'syscall::read:entry ' matched 2 probes
+^C
+
+             2048  ns                                                
+           value  ------------- Distribution ------------- count    
+            4096 |                                         0        
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   3229     
+           16384 |@@                                       191      
+           32768 |                                         20       
+           65536 |                                         0        
+
+             1024  ns                                                
+           value  ------------- Distribution ------------- count    
+            4096 |                                         0        
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    6467     
+           16384 |@@                                       422      
+           32768 |                                         43       
+           65536 |                                         6        
+          131072 |                                         0        
+
+         41943040  ns                                                
+           value  ------------- Distribution ------------- count    
+         4194304 |                                         0        
+         8388608 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   135      
+        16777216 |@@@                                      9        
+        33554432 |                                         0    
+
+This confirms that the small reads, 1 and 2 Kbytes, are fast, and the large
+reads of 40 Mbytes are slow.
+
+I'll check the code-path to these sizes, to see if that helps explain the
+cause of the large reads:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0801"/ { @[arg2, ustack(), " "] = count(); }'
+dtrace: description 'syscall::read:entry ' matched 1 probe
+^C
+
+         41943040
+              libc.so.1`__read+0x15
+              lab0801`main+0x1f9
+              lab0801`_start+0x83
+                                                                   99
+             2048
+              libc.so.1`__read+0x15
+              lab0801`main+0x1f9
+              lab0801`_start+0x83
+                                                                 2632
+             1024
+              libc.so.1`__read+0x15
+              lab0801`main+0x1f9
+              lab0801`_start+0x83
+                                                                 5224
+
+The code-paths look the same, so this isn't helpful.
+
+This is about as far as I'll take this investigation for now. To answer the
+original question: there is not a disk problem. The slower reads are 40 Mbyte
+reads, which take several milliseconds of CPU time to complete. Since there
+isn't substantial off-CPU time, it's unlikely the disks are involved: these
+are cache hits.
