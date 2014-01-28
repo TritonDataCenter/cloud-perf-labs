@@ -1,0 +1,150 @@
+Min Prereq: Chapter 5
+
+Customer description:
+
+Application is taking forever to process work. Why might that be?
+
+Your response:
+
+This was examined on a Joyent SmartOS cloud instance, which is an OS-Virtualized
+guest.
+
+I began by checking thread states (this is the TSA method), using prstat:
+
+# prstat -mLc 1
+[...]
+   PID USERNAME USR SYS TRP TFL DFL LCK SLP LAT VCX ICX SCL SIG PROCESS/LWPID 
+ 50537 root      44  56 0.0 0.0 0.0 0.0 0.0 0.0   0  73 .27   0 lab0502/1
+  7512 root     1.1 0.2 0.0 0.0 0.0 0.0  99 0.0  69   1 603   0 svc.configd/8
+ 51005 root     0.0 0.2 0.0 0.0 0.0 0.0 100 0.0  16   0 156   0 prstat/1
+[...]
+   PID USERNAME USR SYS TRP TFL DFL LCK SLP LAT VCX ICX SCL SIG PROCESS/LWPID 
+ 50537 root      44  56 0.0 0.0 0.0 0.0 0.0 0.0   0  73 .21   0 lab0502/1
+  7512 root      18 3.0 0.0 0.0 0.0  22  57 0.0  2K   8 10K   0 svc.configd/11
+  7512 root      11 1.7 0.0 0.0 0.0  67  21 0.1 859   7  5K   0 svc.configd/8
+[...]
+
+The output shows that the application is single-threaded, and is 100% on-CPU
+(USR + SYS). 44% of its on-CPU time is in user-mode (USR), and 56% is in the
+system (SYS, kernel-mode). 
+
+I'll begin by examining the system time, as it's the larger of the states.
+Since this is an OS-Virtualized guest, I cannot profile kernel CPU time from
+the guest, due to permissions, as the kernel is shared between all guests.
+
+However, I can examine the workload applied to the kernel, starting with the
+system calls. This will explain the system time in most cases. To do this,
+I'll use DTrace, and start by counting system calls and their types:
+
+# dtrace -n 'syscall:::entry /execname == "lab0502"/ { @[probefunc] = count(); }'
+dtrace: description 'syscall:::entry ' matched 234 probes
+^C
+
+  read                                                        4691194
+
+While tracing, the application performed over 4 million read() syscalls.
+
+It may be useful to quantify this as a per-second rate, and to check for
+variance. Using DTrace:
+
+# dtrace -n 'syscall:::entry /execname == "lab0502"/ { @[probefunc] = count(); }
+    tick-1s { printa(@); trunc(@); }'
+dtrace: description 'syscall:::entry ' matched 235 probes
+CPU     ID                    FUNCTION:NAME
+  9   3666                         :tick-1s 
+  read                                                         369346
+
+  9   3666                         :tick-1s 
+  read                                                         378211
+
+  9   3666                         :tick-1s 
+  read                                                         335067
+
+  9   3666                         :tick-1s 
+  read                                                         349892
+
+  9   3666                         :tick-1s 
+  read                                                         367800
+
+The application is calling around 350,000 read() syscalls per second. This
+sounds consistent with a high system time for a single thread: which is caused
+by many syscalls.
+
+I'll now learn some more about this read() syscall. Starting with what is
+being read, by checking the file descriptor using DTrace:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0502"/ { @[arg0] = count(); }'
+dtrace: description 'syscall::read:entry ' matched 1 probe
+^C
+
+                3           554344
+
+It is always file descriptor 3.
+
+I can check what that is using pfiles, although that can pause the target if it
+has many file descriptors. In this case, I'll try DTrace:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0502"/ {
+    @[fds[arg0].fi_pathname] = count(); }'
+dtrace: description 'syscall::read:entry ' matched 1 probe
+^C
+
+  /root/data100m                                               213517
+
+It's a /root/data100m file. Using ls shows that it is 100 Mbytes in size.
+
+Next, I'll check the return sizes of the read()s, and show these sizes as a
+distribution plot:
+
+# dtrace -n 'syscall::read:return /execname == "lab0502"/ { @ = quantize(arg0); }'
+dtrace: description 'syscall::read:return ' matched 1 probe
+^C
+
+
+           value  ------------- Distribution ------------- count    
+              -1 |                                         0        
+               0 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 806902   
+               1 |                                         0   
+
+All reads returned 0 bytes. Such a distribution plot is usually more
+interesting, showing different sized reads that occurred. This seems unusual --
+what is the requested size of the reads?
+
+# dtrace -n 'syscall::read:entry /execname == "lab0502"/ { @ = quantize(arg2); }'
+dtrace: description 'syscall::read:entry ' matched 1 probe
+^C
+
+
+           value  ------------- Distribution ------------- count    
+              -1 |                                         0        
+               0 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 663048   
+               1 |                                         0    
+
+The requested size is also 0 bytes.
+
+This is starting to sound like a bug in the application code: why would it
+call 350,000 read() syscalls per second, and request zero bytes?
+
+Checking the user-level code path that led to the reads, by retrieving the
+stack trace:
+
+# dtrace -n 'syscall::read:entry /execname == "lab0502"/ { @[ustack()] = count(); }'
+dtrace: description 'syscall::read:entry ' matched 1 probe
+^C
+
+
+              libc.so.1`__read+0x15
+              lab0502`load_data+0x62
+              lab0502`restore_db+0xb
+              lab0502`main+0xb
+              lab0502`_start+0x83
+           222201
+
+It's in the load_data() function, from restore_db().
+
+This is about as far as I'll take this investigation for now. I'd ask the
+database administrator if they were aware of such a problem when doing a
+restore database (assuming that's what the function means), as it may be a
+known bug fixed in a later release. With access to the software developers,
+I'd show them the stack and analysis, and see if they can determine what is
+causing zero byte reads.
