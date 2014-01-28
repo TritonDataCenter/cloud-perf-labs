@@ -1,0 +1,9 @@
+Min Prereq: Module 6
+
+Customer description:
+
+We migrated at application to the new idle server, but didn't see the expected
+performance improvement. What's wrong?
+
+Your response:
+

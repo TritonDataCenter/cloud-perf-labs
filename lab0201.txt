@@ -1,0 +1,9 @@
+Min Prereq: Chapter 2
+
+Customer description:
+
+"We disabled our application cache, and the file system cache hit ratio changed
+from 90% to 99%, however, performance is worse. Why could this be?"
+
+Your response:
+

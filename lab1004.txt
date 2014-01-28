@@ -1,0 +1,10 @@
+Min Prereq: Chapter 10
+
+Description:
+
+A customer has complained of poor rsync performance. As a test for analysis,
+use rsync to copy /usr from one smartmachine to another, and analyze performance.
+Eg: "cd /; rsync -avz /usr 10.2.3.4:/tmp"
+
+Your response:
+

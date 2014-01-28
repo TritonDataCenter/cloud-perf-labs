@@ -1,0 +1,17 @@
+Min Prereq: Chapter 3
+
+Customer description:
+
+During CPU profiling of the kernel, the following stack was seen:
+
+              unix`tsc_scalehrtime+0x5a
+              unix`disp_getbest+0x167
+              unix`disp_getwork+0x2a5
+              unix`idle+0x55
+              unix`thread_start+0x8
+
+Explain what what this is doing. You can use http://src.illumos.org
+as a reference for kernel symbols.
+
+Your response:
+

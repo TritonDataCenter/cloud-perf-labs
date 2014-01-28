@@ -1,0 +1,9 @@
+Min Prereq: Chapter 4
+
+Description:
+
+Use DTrace to show which processes are opening which files on an otherwise
+idle system.
+
+Your response:
+

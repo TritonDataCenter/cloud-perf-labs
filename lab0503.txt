@@ -1,0 +1,10 @@
+Min Prereq: Chapter 5
+
+Description:
+
+Use thread state analysis to determine which state this application spends
+its time in. Describe in general how you may analyze that state (the specific
+steps are covered in later chapters).
+
+Your response:
+

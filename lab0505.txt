@@ -1,0 +1,8 @@
+Min Prereq: Chapter 5
+
+Customer description:
+
+Our database queries seem to be a bit slow. Why?
+
+Your response:
+

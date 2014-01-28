@@ -1,0 +1,17 @@
+Min Prereq: Chapter 8
+
+Customer description:
+
+We tested file system performance using sysbench, and we'd like to understand
+what the limiting factor is. The commands we used were:
+
+sysbench --num-threads=1 --test=fileio --file-total-size=2G --file-test-mode=rndrd prepare
+sysbench --num-threads=1 --max-requests=1000000 --test=fileio --file-total-size=2G --file-test-mode=rndrd run
+
+(You may need to install sysbench first: pkgin in sysbench)
+
+Can you explain what is limiting performance of the "run" stage? (It can be rerun
+multiple times after prepare has completed, and, the .)
+
+Your response:
+

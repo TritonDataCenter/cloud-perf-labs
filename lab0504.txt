@@ -1,0 +1,9 @@
+Min Prereq: Module 5
+
+Customer description:
+
+App takes a long time to restore the database. Analyze performance and try
+to explain why.
+
+Your response:
+

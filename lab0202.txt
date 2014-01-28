@@ -1,0 +1,13 @@
+Min Prereq: Chapter 2
+
+Customer description:
+
+"The CPU usage on our MySQL server prod04 has doubled recently, now at 80% of
+total capacity when it is usually at 40%. It's only this server, the other
+similar MySQL servers are still running at 40% CPU. It's MySQL 5.5.13 on
+a High-CPU 8 Gbyte instance of SmartOS."
+
+Which Problem Statement questions are left unanswered by this description?
+
+Your response to the customer:
+

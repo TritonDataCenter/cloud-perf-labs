@@ -1,0 +1,10 @@
+Min Prereq: Chapter 10
+
+Description:
+
+Use iperf to test throughput between two smartmachines. Each test should be no
+shorter than 10 seconds. Vary the number of threads that are used in parallel
+from 1 to 10 (or more) and plot a graph of the resulting scalability.
+
+Your response:
+

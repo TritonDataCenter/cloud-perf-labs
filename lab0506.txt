@@ -1,0 +1,8 @@
+Min Prereq: Chapter 5
+
+Customer description:
+
+This app seems really, really slow. Can you figure out what is wrong? Maybe DTrace can help?
+
+Your response:
+

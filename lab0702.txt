@@ -1,0 +1,13 @@
+Min Prereq: Chapter 7
+
+Description:
+
+To test your understanding of "vmstat 1" and "vmstat -p 1" metrics, create a
+workload in your smartmachine that causes anonymous memory paging (aka, swapping),
+and watch it using those tools. Anonymous page outs is sufficient.
+
+Optional: if you can cause anonymous page ins: quantify the latency that these
+are causing on your workload.
+
+Your response:
+

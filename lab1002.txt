@@ -1,0 +1,10 @@
+Min Prereq: Chapter 10
+
+Description:
+
+Use either snoop or DTrace to measure the TCP handshake latency between two
+smartmachines. As a target for measurement, use ssh to connect from one to
+another (successful login is not necessary).
+
+Your response:
+

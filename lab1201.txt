@@ -1,0 +1,18 @@
+Min Prereq: Chapter 8
+
+Customer description:
+
+File system performance is tested using sysbench. The prepare and run commands
+are:
+
+sysbench --num-threads=1 --test=fileio --file-total-size=2G --file-test-mode=rndrd prepare
+sysbench --num-threads=1 --max-requests=1000000 --test=fileio --file-total-size=2G --file-test-mode=rndrd run
+
+(You may need to install sysbench first: pkgin in sysbench)
+
+Ramp the load by increasing the num-threads from 1 to 10 (or more). Once a limit
+has been found, perform Active Bencmarking to determine the limiter. Eg, you can
+start with the USE Method.
+
+Your response:
+

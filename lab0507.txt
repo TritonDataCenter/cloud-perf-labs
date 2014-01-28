@@ -1,0 +1,9 @@
+Min Prereq: Module 3
+
+Customer description:
+
+We migrated our database to this platform, but it doesn't startup correctly.
+Is there some OS limit that needs to be tuned for this database?
+
+Your response:
+

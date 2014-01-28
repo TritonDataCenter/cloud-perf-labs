@@ -1,0 +1,9 @@
+Min Prereq: Chapter 6
+
+Customer description:
+
+Our application seems CPU hungry; can you give us some details on why, so we
+know what to fix?
+
+Your response:
+

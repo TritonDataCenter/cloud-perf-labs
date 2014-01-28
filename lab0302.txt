@@ -1,0 +1,25 @@
+Min Prereq: Chapter 3
+
+Customer description:
+
+During CPU profiling of the kernel, the following stack was seen:
+
+              unix`xc_call+0x39
+              unix`hat_tlb_inval+0x2a8
+              unix`x86pte_inval+0xb8
+              unix`hat_pte_unmap+0xde
+              unix`hat_unload_callback+0x259
+              unix`hat_unload+0x3e
+              swrand`physmem_ent_gen+0x1f6
+              swrand`rnd_handler+0x24
+              genunix`callout_list_expire+0x98
+              genunix`callout_expire+0x3b
+              genunix`callout_execute+0x20
+              genunix`taskq_thread+0x2d0
+              unix`thread_start+0x8
+
+Explain what what this is doing. You can use http://src.illumos.org
+as a reference for kernel symbols.
+
+Your response:
+

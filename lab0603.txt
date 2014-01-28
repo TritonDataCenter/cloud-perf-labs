@@ -1,0 +1,12 @@
+Min Prereq: Module 6
+
+Customer description:
+
+The following command, run in a bash shell, takes over 20 seconds:
+
+i=0; while (( i++ < 2000000 )); do :; done
+
+Why?
+
+Your response:
+

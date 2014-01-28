@@ -1,0 +1,10 @@
+Min Prereq: Chapter 11
+
+Description:
+
+Write a simple shell script to gather USE method metrics for a SmartOS
+smartmachine, printing out as many as possible. Refer to:
+http://dtrace.org/blogs/brendan/2012/12/19/the-use-method-smartos-performance-checklist/
+
+Your response:
+

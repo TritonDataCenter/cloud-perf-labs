@@ -1,0 +1,11 @@
+Min Prereq: Chapter 9
+
+Description:
+
+Run "iostat -xn" to view the summary since boot statistics, and "iostat -En"
+for the device types. Based on this information, can you tell if the workload
+since boot has been more random or sequential in nature, and other details?
+Explain.
+
+Your response:
+

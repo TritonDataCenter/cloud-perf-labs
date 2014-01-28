@@ -1,0 +1,9 @@
+Min Prereq: Chapter 8
+
+Customer description:
+
+We upgraded the app to a version that performs better, but performance is
+worse. Why might that be?
+
+Your response:
+

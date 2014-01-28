@@ -1,0 +1,15 @@
+Min Prereq: Chapter 4
+
+Description:
+
+The following details printed by ps(1) are from the kernel:
+
+$ ps
+  PID TTY         TIME CMD
+43257 pts/1       0:00 ps
+57055 pts/1       0:00 bash
+
+Describe how ps(1), executed in user space, is able to see kernel internals.
+
+Your response:
+

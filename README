@@ -1,0 +1,23 @@
+Cloud Performance Labs
+----------------------
+
+This is a set of labs, each of which simulate a performance issue for the
+student to debug. They are based on the book Systems Performance: Enterprise and
+the Cloud, ISBN-10: 0133390098, http://www.brendangregg.com/sysperfbook.html. 
+
+In the top level directory are the lab tickets (*.txt): text files that
+simulate a customer ticket. Some of these labs have binaries to execute for
+analysis, which have been compiled for SmartOS. The numbering for these is
+labCCXX.txt, where CC = chapter number, and XX = lab number.
+
+The source code for the labs is under lab_src. If you are running these to
+practice performance analysis, try not to read the source (the answers) until
+you are confident you've finished analysis. The labs themselves are intended
+to exhibit a single performance issue (or not) in an infinite loop: so you
+can run them and leave them running while you perform analysis, then kill
+the process once you're done.
+
+These labs have been used during Joyent's Cloud Performance class, run by
+Brendan Gregg:
+
+http://www.joyent.com/developers/training-services/cloud-performance

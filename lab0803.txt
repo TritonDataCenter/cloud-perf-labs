@@ -1,0 +1,9 @@
+Min Prereq: Module 4
+
+Customer description:
+
+We upgraded the CPUs, but the database isn't running more quickly. What is it
+doing?
+
+Your response:
+

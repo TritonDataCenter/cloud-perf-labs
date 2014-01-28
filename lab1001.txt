@@ -1,0 +1,8 @@
+Min Prereq: Chapter 10
+
+Description:
+
+Determine the TCP retransmit ratio (percentage) for your smartmachine.
+
+Your response:
+

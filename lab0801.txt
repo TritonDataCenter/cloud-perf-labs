@@ -1,0 +1,8 @@
+Min Prereq: Chapter 8
+
+Customer description:
+
+Sometimes file reads are slow. Is there a disk problem?
+
+Your response:
+

@@ -1,0 +1,9 @@
+Min Prereq: Chapter 6
+
+Customer description:
+
+Our database queries have been taking longer and longer to respond as we add
+more data. We're pretty sure the disks are to blame - can you investigate?
+
+Your response:
+

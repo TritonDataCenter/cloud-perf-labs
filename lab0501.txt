@@ -1,0 +1,11 @@
+Min Prereq: Chapter 5
+
+Description:
+
+The customer has a performance problem with their application, which is the
+Sphinx Search Engine.  Spend 5 minutes researching application basics for this
+technology: what is its function, CPU mode, how is it configured, are there
+community forums, books, etc.
+
+Your response:
+

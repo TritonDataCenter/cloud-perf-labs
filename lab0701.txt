@@ -1,0 +1,11 @@
+Min Prereq: Chapter 7
+
+Description:
+
+The customer has blamed swapping (where they mean either anonymous paging
+or swapping) for their performance issue. Can you confirm or deny if your
+smartmachine has ever performed either of these. Include screenshots of the
+command output.
+
+Your response:
+
